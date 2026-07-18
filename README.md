@@ -95,10 +95,14 @@ jobs — one for iOS, one for macOS — that:
 1. install [XcodeGen](https://github.com/yonaskolb/XcodeGen) and generate
    `MayAyeEyeDen.xcodeproj` from `project.yml`;
 2. archive the `MayAyeEyeDen-iOS` and `MayAyeEyeDen` schemes via `xcodebuild`;
-3. when signing secrets are present, export a TestFlight-ready `.ipa` / `.pkg`;
+3. when signing secrets are present, export a TestFlight-ready `.ipa` / `.pkg`
+   and **upload it to TestFlight** automatically;
 4. upload the resulting `.xcarchive` (and exported app) as build artifacts.
 
-Each build uses `scripts/ci-build.sh`.
+Each build uses `scripts/ci-build.sh`. Before building, `scripts/bump-version.sh`
+stamps both `Info.plist` files with a monotonic build number (the GitHub run
+number) so every TestFlight upload has a unique `CFBundleVersion`, and captures
+a short changelog from recent commits as release notes.
 
 ### Enabling signed / TestFlight-ready archives
 
@@ -116,10 +120,26 @@ while you wire up credentials.
 | `MAC_PROVISIONING_PROFILE_BASE64` | Base64 of the **Mac App Store** provisioning profile |
 | `KEYCHAIN_PASSWORD` | *(optional)* password for the CI keychain |
 
-To TestFlight-upload the exported archives automatically, chain the
-`fastlane deliver` / `altool` step (see the sibling automation task) onto the
-two build jobs — the archives are exported with `method: app-store`, ready for
-upload.
+### Enabling automatic TestFlight uploads
+
+Once the app has an **internal testing group** configured in App Store Connect,
+add these App Store Connect **API key** secrets and every signed merge build is
+uploaded to TestFlight automatically (typically visible to internal testers in
+well under 30 minutes). If any of these are missing the upload step is skipped
+with a warning — the build still succeeds and archives are still produced.
+
+| Secret | Value |
+| --- | --- |
+| `APP_STORE_CONNECT_API_KEY_ID` | The key id of your App Store Connect API key (e.g. `A1B2C3D4E5`) |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | The issuer id from App Store Connect → Users and Access → Integrations → API Keys |
+| `APP_STORE_CONNECT_API_KEY_BASE64` | Base64 of the downloaded `AuthKey_XXXX.p8` private key |
+
+Create the API key under **App Store Connect → Users and Access → Integrations
+→ App Store Connect API** with the **App Manager** role. Base64-encode the `.p8`
+with `base64 -i AuthKey_XXXX.p8 | pbcopy`.
+
+The upload uses `scripts/testflight-upload.sh` (via `xcrun altool`); version
+bumping and release notes are handled by `scripts/bump-version.sh`.
 
 ## Verification checklist (acceptance)
 
