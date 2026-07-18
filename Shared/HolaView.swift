@@ -26,7 +26,7 @@ public struct HolaView: View {
     @ViewBuilder
     private var content: some View {
         if SeedData.lessons.isEmpty {
-            FeatureEmptyState("No lessons",
+            FeatureEmptyState(title: "No lessons",
                 systemImage: "graduationcap",
                 description: "Add lessons to SeedData.lessons to begin.")
         } else {
@@ -122,7 +122,8 @@ public struct HolaView: View {
                         .frame(maxWidth: .infinity)
                         .background(taps.contains(word)
                                     ? Color.accentColor.opacity(0.25)
-                                    : RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.4)))
+                                    : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.4)))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)

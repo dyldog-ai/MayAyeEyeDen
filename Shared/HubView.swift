@@ -6,8 +6,6 @@ import SwiftUI
 /// Cuentos) as tappable tiles and routes into the matching feature view. Lives
 /// in `Shared/` so both the iOS and macOS apps share one launcher.
 public struct HubView: View {
-    @State private var selection: Idea?
-
     public init() {}
 
     public var body: some View {
@@ -26,7 +24,7 @@ public struct HubView: View {
             }
             .navigationTitle("MayAyeEyeDen")
             .inlineTitle()
-            .navigationDestination(item: $selection) { idea in
+            .navigationDestination(for: Idea.self) { idea in
                 destination(for: idea)
             }
         }
@@ -55,9 +53,7 @@ public struct HubView: View {
     }
 
     private func tile(_ idea: Idea) -> some View {
-        Button {
-            selection = idea
-        } label: {
+        NavigationLink(value: idea) {
             VStack(spacing: 10) {
                 Image(systemName: idea.symbol)
                     .font(.system(size: 28))
