@@ -1,0 +1,114 @@
+name: CI Build (iOS + Mac)
+
+# Triggers whenever changes land on `main` — including merges (squash/merge
+# commits both create a new commit on main). A manual run is also available.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two CI runs for the same ref at once; cancel the stale one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: macos-latest
+    strategy:
+      # Run the iOS and Mac builds in parallel; if one fails the other still
+      # finishes so you can see both results.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ios
+            scheme: MayAyeEyeDen-iOS
+            destination: generic/platform=iOS
+            export_method: app-store
+            profile_secret: IOS_PROVISIONING_PROFILE_BASE64
+          - platform: macos
+            scheme: MayAyeEyeDen
+            destination: generic/platform=macOS
+            export_method: app-store
+            profile_secret: MAC_PROVISIONING_PROFILE_BASE64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        # The GUI apps are generated from project.yml; xcodegen is not present
+        # on the runner by default.
+        run: brew install xcodegen
+
+      - name: Set up code signing (when secrets are configured)
+        id: signing
+        env:
+          CERT_P12: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          CERT_PASS: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PROFILE: ${{ secrets[matrix.profile_secret] }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASS: ${{ secrets.KEYCHAIN_PASSWORD || 'ci-temporary-keychain' }}
+        run: |
+          if [ -z "$CERT_P12" ] || [ -z "$PROFILE" ] || [ -z "$TEAM_ID" ]; then
+            echo "signing=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::Signing secrets are not fully configured — producing an UNSIGNED archive. Add APPLE_CERT_P12_BASE64, APPLE_CERT_PASSWORD, APPLE_TEAM_ID and the IOS_PROVISIONING_PROFILE_BASE64 / MAC_PROVISIONING_PROFILE_BASE64 secrets to produce TestFlight-signed archives."
+          else
+            echo "signing=yes" >> "$GITHUB_OUTPUT"
+            KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+            security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN"
+            security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
+            # Import the distribution certificate (P12) into the temp keychain.
+            echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+            security import "$RUNNER_TEMP/cert.p12" \
+              -P "$CERT_PASS" \
+              -A \
+              -t cert \
+              -f pkcs12 \
+              -k "$KEYCHAIN"
+            security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN"
+            # Install the provisioning profile for this platform.
+            PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+            mkdir -p "$PROFILE_DIR"
+            echo "$PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+            UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< "$(security cms -D -i "$RUNNER_TEMP/profile.mobileprovision")")
+            cp "$RUNNER_TEMP/profile.mobileprovision" "$PROFILE_DIR/$UUID.mobileprovision"
+            echo "Installed provisioning profile $UUID"
+          fi
+
+      - name: Build & archive
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          bash scripts/ci-build.sh \
+            --scheme "${{ matrix.scheme }}" \
+            --destination "${{ matrix.destination }}" \
+            --config Release \
+            --export-method "${{ matrix.export_method }}" \
+            --signing "${{ steps.signing.outputs.signing }}" \
+            --team "$TEAM_ID"
+
+      - name: Upload .xcarchive artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-xcarchive
+          path: build/${{ matrix.scheme }}.xcarchive
+          if-no-files-found: error
+
+      - name: Upload exported app (signed only)
+        if: steps.signing.outputs.signing == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-app
+          path: build/export/${{ matrix.platform }}/*
+          if-no-files-found: error

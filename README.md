@@ -86,6 +86,41 @@ iOS GUI target.
 The app launches into a minimal SwiftUI window that greets the entered name,
 proving the shared `MayAyeEyeDenCore` library is wired through to the GUI.
 
+## CI: automated iOS + Mac builds on merge
+
+A GitHub Actions workflow (`.github/workflows/ci-build.yml`) runs on **every
+push to `main`** (including merges). It spins up two parallel macOS runner
+jobs — one for iOS, one for macOS — that:
+
+1. install [XcodeGen](https://github.com/yonaskolb/XcodeGen) and generate
+   `MayAyeEyeDen.xcodeproj` from `project.yml`;
+2. archive the `MayAyeEyeDen-iOS` and `MayAyeEyeDen` schemes via `xcodebuild`;
+3. when signing secrets are present, export a TestFlight-ready `.ipa` / `.pkg`;
+4. upload the resulting `.xcarchive` (and exported app) as build artifacts.
+
+Each build uses `scripts/ci-build.sh`.
+
+### Enabling signed / TestFlight-ready archives
+
+Add the following **repository secrets** (Settings → Secrets and variables →
+Actions). With them the workflow produces signed archives; without them it
+still builds and archives **unsigned** artifacts so the pipeline stays green
+while you wire up credentials.
+
+| Secret | Value |
+| --- | --- |
+| `APPLE_CERT_P12_BASE64` | Base64 of your Apple Distribution `.p12` certificate |
+| `APPLE_CERT_PASSWORD` | Password for that `.p12` |
+| `APPLE_TEAM_ID` | Your 10-char Apple Developer Team ID |
+| `IOS_PROVISIONING_PROFILE_BASE64` | Base64 of the **iOS App Store** provisioning profile |
+| `MAC_PROVISIONING_PROFILE_BASE64` | Base64 of the **Mac App Store** provisioning profile |
+| `KEYCHAIN_PASSWORD` | *(optional)* password for the CI keychain |
+
+To TestFlight-upload the exported archives automatically, chain the
+`fastlane deliver` / `altool` step (see the sibling automation task) onto the
+two build jobs — the archives are exported with `method: app-store`, ready for
+upload.
+
 ## Verification checklist (acceptance)
 
 - [x] SPM package builds (`swift build`) without errors.
