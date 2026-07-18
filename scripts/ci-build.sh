@@ -96,8 +96,7 @@ else
   # Synthesize an .xcarchive-shaped bundle so the upload artifact step resolves.
   echo "==> Producing unsigned .xcarchive bundle for artifact upload"
   mkdir -p "$ARCHIVE_PATH/Products/Applications"
-  cp -R "$BUILD_DIR/$PLATFORM/"*.app "$ARCHIVE_PATH/Products/Applications/" 2>/dev/null || \
-    cp -R "$BUILD_DIR/$PLATFORM/"*.app "$ARCHIVE_PATH/Products/Applications/"
+  cp -R "$BUILD_DIR/$PLATFORM/"*.app "$ARCHIVE_PATH/Products/Applications/"
   echo "==> Unsigned product produced at: $ARCHIVE_PATH/Products/Applications"
   ls -la "$ARCHIVE_PATH/Products/Applications"
 fi

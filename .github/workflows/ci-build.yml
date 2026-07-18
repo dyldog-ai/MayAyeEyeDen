@@ -45,8 +45,14 @@ jobs:
 
       - name: Install XcodeGen
         # The GUI apps are generated from project.yml; xcodegen is not present
-        # on the runner by default.
-        run: brew install xcodegen
+        # on the runner by default. Homebrew's prefix differs between Intel
+        # and Apple-Silicon runners, so prepend both to PATH before invoking it.
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          brew install xcodegen
+          xcodegen version
 
       - name: Set up code signing (when secrets are configured)
         id: signing
