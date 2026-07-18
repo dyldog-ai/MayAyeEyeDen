@@ -26,7 +26,7 @@ public struct HolaView: View {
     @ViewBuilder
     private var content: some View {
         if SeedData.lessons.isEmpty {
-            FeatureEmptyState("No lessons",
+            FeatureEmptyState(title: "No lessons",
                 systemImage: "graduationcap",
                 description: "Add lessons to SeedData.lessons to begin.")
         } else {
