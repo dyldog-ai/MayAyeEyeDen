@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: com.dyldog
   deploymentTarget:
     macOS: "13.0"
+    iOS: "16.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -38,3 +39,31 @@ targets:
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME: AccentColor
+
+  MayAyeEyeDen-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: iOSApp
+        excludes:
+          - "Info.plist"
+          - "MayAyeEyeDen.entitlements"
+    dependencies:
+      - package: MayAyeEyeDenPackage
+        product: MayAyeEyeDenCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dyldog.MayAyeEyeDen
+        PRODUCT_NAME: MayAyeEyeDen
+        INFOPLIST_FILE: iOSApp/Info.plist
+        CODE_SIGN_ENTITLEMENTS: iOSApp/MayAyeEyeDen.entitlements
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        GENERATE_INFOPLIST_FILE: "NO"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME: AccentColor
+        DEVELOPMENT_ASSET_PATHS: '"iOSApp/Preview Content"'

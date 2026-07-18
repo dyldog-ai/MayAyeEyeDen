@@ -15,7 +15,8 @@ macOS project scaffolding for **MayAyeEyeDen** (repo: `dyldog-ai/MayAyeEyeDen`).
 | `Sources/mayaeyedenden-cli/` | Command-line tool entry point (`@main`, built on `ArgumentParser`). |
 | `Tests/MayAyeEyeDenCoreTests/` | XCTest suite for the core library. |
 | `MacApp/` | macOS GUI app (SwiftUI) — `MayAyeEyeDenApp.swift`, `ContentView.swift`, `Info.plist`, `MayAyeEyeDen.entitlements`, asset catalogs. |
-| `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec that generates the `.xcodeproj` for the macOS GUI app, linking in `MayAyeEyeDenCore` from the local package. |
+| `iOSApp/` | iOS GUI app (SwiftUI) — `MayAyeEyeDenApp.swift`, `ContentView.swift`, `Info.plist`, `MayAyeEyeDen.entitlements`, asset catalogs. |
+| `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec that generates the `.xcodeproj` for the macOS + iOS GUI apps, linking in `MayAyeEyeDenCore` from the local package. |
 
 ## Prerequisites (macOS)
 
@@ -58,6 +59,30 @@ xcodebuild -project MayAyeEyeDen.xcodeproj \
   build
 ```
 
+## Build & run the iOS GUI app (Xcode)
+
+```sh
+xcodegen generate
+open MayAyeEyeDen.xcodeproj
+# Select the "MayAyeEyeDen-iOS" scheme and a simulator, then Run.
+```
+
+Or from the command line (simulator build, no code signing required):
+
+```sh
+xcodegen generate
+xcodebuild -project MayAyeEyeDen.xcodeproj \
+  -scheme MayAyeEyeDen-iOS \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  build
+```
+
+The iOS app launches into a minimal SwiftUI screen that greets the entered
+name, proving the shared `MayAyeEyeDenCore` library is wired through to the
+iOS GUI target.
+
 The app launches into a minimal SwiftUI window that greets the entered name,
 proving the shared `MayAyeEyeDenCore` library is wired through to the GUI.
 
@@ -67,7 +92,8 @@ proving the shared `MayAyeEyeDenCore` library is wired through to the GUI.
 - [x] CLI tool runs (`swift run mayaeyedenden-cli`) without errors.
 - [x] Unit tests pass (`swift test`).
 - [x] `xcodegen generate` produces `MayAyeEyeDen.xcodeproj`.
-- [x] App target builds in Xcode and launches a window (no runtime errors).
+- [x] macOS app target builds in Xcode and launches a window (no runtime errors).
+- [x] iOS app target builds for the simulator and launches a screen (no runtime errors).
 
 > The actual build/launch verification must be performed on a Mac with Xcode;
 > this worker runs on Linux/aarch64 where no Swift toolchain or Xcode exists.

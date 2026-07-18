@@ -5,7 +5,8 @@ let package = Package(
     name: "MayAyeEyeDen",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v13),
+        .iOS(.v16)
     ],
     products: [
         // Shared library consumed by both the CLI tool and the macOS GUI app.
