@@ -1,39 +1,35 @@
 name: Probe dep-fetch methods
 
-# Runs only when pushed to the probe-fix branch.
 on:
   push:
     branches: [probe-fix]
 
 jobs:
-  anon-https:
-    name: anon-https-clone
+  anon-strip-creds:
+    name: anon-strip-creds
     runs-on: macos-latest
     steps:
-      - name: Clone public repo via anonymous HTTPS (hard)
+      - name: Strip injected credential config, then anonymous HTTPS clone
         run: |
           rm -rf /tmp/aap
-          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap
-          echo "ANON_HTTPS_OK"
+          unset GITHUB_TOKEN
+          git config --global --unset credential.helper || true
+          git config --global --unset http.extraheader || true
+          GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= \
+            clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap 2>&1 | tail -3 \
+            && echo "STRIP_OK" || echo "STRIP_FAIL"
+          rm -rf /tmp/aap
 
-  token-https:
-    name: token-https-clone
+  anon-sterile-home:
+    name: anon-sterile-home
     runs-on: macos-latest
     steps:
-      - name: Clone public repo via GITHUB_TOKEN HTTPS (hard)
+      - name: Truly anonymous clone in sterile HOME
         run: |
-          rm -rf /tmp/aap
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap
-          echo "TOKEN_HTTPS_OK"
-
-  ssh-redirect:
-    name: ssh-redirect-clone
-    runs-on: macos-latest
-    steps:
-      - name: Clone public repo via SSH url redirect (hard)
-        run: |
-          rm -rf /tmp/aap
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap
-          echo "SSH_REDIRECT_OK"
+          rm -rf /tmp/aap /tmp/emptyhome
+          mkdir -p /tmp/emptyhome
+          HOME=/tmp/emptyhome GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
+            git -c credential.helper= -c http.extraheader= \
+            clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap 2>&1 | tail -3 \
+            && echo "STERILE_OK" || echo "STERILE_FAIL"
+          rm -rf /tmp/aap /tmp/emptyhome
