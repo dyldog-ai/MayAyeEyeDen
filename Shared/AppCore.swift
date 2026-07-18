@@ -1,7 +1,9 @@
 import Foundation
 
-/// Shared core for MayAyeEyeDen (single codebase shared by the macOS and iOS apps).
-public enum MayAyeEyeDenCore {
+/// Shared core for MayAyeEyeDen — single codebase used by both the macOS and
+/// iOS apps. Compiled directly into each app target (see `project.yml`), so
+/// there is no separate framework or SwiftPM package to resolve at build time.
+public enum AppCore {
     /// Display name of the product.
     public static let appName = "MayAyeEyeDen"
 
@@ -17,6 +19,6 @@ public struct Greeter {
     /// - Parameter name: The name to greet.
     /// - Returns: A localized-friendly greeting string.
     public func greet(name: String) -> String {
-        "Hello, \(name)! Welcome to \(MayAyeEyeDenCore.appName) v\(MayAyeEyeDenCore.version)."
+        "Hello, \(name)! Welcome to \(AppCore.appName) v\(AppCore.version)."
     }
 }

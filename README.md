@@ -1,51 +1,42 @@
 # MayAyeEyeDen
 
-macOS project scaffolding for **MayAyeEyeDen** (repo: `dyldog-ai/MayAyeEyeDen`).
+A single shared SwiftUI codebase that builds **both** a macOS and an iOS app
+(repo: `dyldog-ai/MayAyeEyeDen`).
 
 > **Note on origin:** The upstream GitHub repository was cloned empty (no
-> commits). This scaffolding bootstraps a real, buildable macOS project from
-> scratch so the app can be built and launched in Xcode.
+> commits). This scaffolding bootstraps a real, buildable app from scratch so
+> it can be built and launched in Xcode and on CI.
 
 ## What's here
 
 | Path | Purpose |
 | --- | --- |
-| `Package.swift` | Swift Package Manager manifest — the source of truth for the shared core library + CLI tool. |
-| `Sources/MayAyeEyeDenCore/` | Platform-agnostic shared library (used by both CLI and GUI app). |
-| `Sources/mayaeyedenden-cli/` | Command-line tool entry point (`@main`, built on `ArgumentParser`). |
-| `Tests/MayAyeEyeDenCoreTests/` | XCTest suite for the core library. |
-| `MacApp/` | macOS GUI app (SwiftUI) — `MayAyeEyeDenApp.swift`, `ContentView.swift`, `Info.plist`, `MayAyeEyeDen.entitlements`, asset catalogs. |
-| `iOSApp/` | iOS GUI app (SwiftUI) — `MayAyeEyeDenApp.swift`, `ContentView.swift`, `Info.plist`, `MayAyeEyeDen.entitlements`, asset catalogs. |
-| `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec that generates the `.xcodeproj` for the macOS + iOS GUI apps, linking in `MayAyeEyeDenCore` from the local package. |
+| `Shared/` | Platform-agnostic source shared by both apps — `AppCore.swift` (constants + `Greeter` logic) and `AppView.swift` (the SwiftUI UI, platform-adaptive via `#if os(macOS)`). |
+| `MacApp/` | macOS app entry point + `Info.plist`, entitlements, asset catalogs. |
+| `iOSApp/` | iOS app entry point + `Info.plist`, entitlements, asset catalogs. |
+| `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec that generates `MayAyeEyeDen.xcodeproj` with two targets (`MayAyeEyeDen` for macOS, `MayAyeEyeDen-iOS` for iOS), each compiling `Shared/` plus its platform directory. |
+
+There is **no Swift Package Manager dependency** — the previously-used
+`apple/apple-argument-parser` package no longer exists, so the app shares one
+codebase directly with no remote packages to fetch. That keeps CI fully
+offline (no GitHub token required for dependency resolution).
 
 ## Prerequisites (macOS)
 
 - macOS 13 (Ventura) or later
 - Xcode 15 or later (provides `xcodebuild`, Swift 5.9)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) for the GUI app target:
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen):
   ```sh
   brew install xcodegen
   ```
-- Network access for the first build (Swift Package Manager fetches
-  `apple/apple-argument-parser`).
 
-## Build & run the command-line tool (SPM)
-
-```sh
-# From the repo root
-swift build
-swift run mayaeyedenden-cli --name Hermes
-swift run mayaeyedenden-cli --version
-swift test
-```
-
-## Build & run the macOS GUI app (Xcode)
+## Build & run in Xcode
 
 ```sh
 # Generate the Xcode project from project.yml
 xcodegen generate
 
-# Open and run in Xcode
+# Open and run in Xcode (pick the MayAyeEyeDen or MayAyeEyeDen-iOS scheme)
 open MayAyeEyeDen.xcodeproj
 ```
 
@@ -53,38 +44,20 @@ Or from the command line:
 
 ```sh
 xcodegen generate
+
+# macOS (Release)
 xcodebuild -project MayAyeEyeDen.xcodeproj \
-  -scheme MayAyeEyeDen \
-  -configuration Release \
-  build
-```
+  -scheme MayAyeEyeDen -configuration Release build
 
-## Build & run the iOS GUI app (Xcode)
-
-```sh
-xcodegen generate
-open MayAyeEyeDen.xcodeproj
-# Select the "MayAyeEyeDen-iOS" scheme and a simulator, then Run.
-```
-
-Or from the command line (simulator build, no code signing required):
-
-```sh
-xcodegen generate
+# iOS (simulator, no code signing required)
 xcodebuild -project MayAyeEyeDen.xcodeproj \
-  -scheme MayAyeEyeDen-iOS \
-  -configuration Debug \
+  -scheme MayAyeEyeDen-iOS -configuration Debug \
   -sdk iphonesimulator \
-  -destination 'generic/platform=iOS Simulator' \
-  build
+  -destination 'generic/platform=iOS Simulator' build
 ```
 
-The iOS app launches into a minimal SwiftUI screen that greets the entered
-name, proving the shared `MayAyeEyeDenCore` library is wired through to the
-iOS GUI target.
-
-The app launches into a minimal SwiftUI window that greets the entered name,
-proving the shared `MayAyeEyeDenCore` library is wired through to the GUI.
+Both apps launch into a minimal SwiftUI screen that greets the entered name,
+proving the shared `AppCore` / `AppView` code is compiled into each target.
 
 ## CI: automated iOS + Mac builds on merge
 
@@ -94,17 +67,18 @@ jobs — one for iOS, one for macOS — that:
 
 1. install [XcodeGen](https://github.com/yonaskolb/XcodeGen) and generate
    `MayAyeEyeDen.xcodeproj` from `project.yml`;
-2. archive the `MayAyeEyeDen-iOS` and `MayAyeEyeDen` schemes via `xcodebuild`;
-3. when signing secrets are present, export a TestFlight-ready `.ipa` / `.pkg`
-   and **upload it to TestFlight** automatically;
-4. upload the resulting `.xcarchive` (and exported app) as build artifacts.
+2. build the `MayAyeEyeDen-iOS` and `MayAyeEyeDen` schemes via `xcodebuild`
+   (unsigned by default — no code signing or package auth required);
+3. upload the resulting `.xcarchive` (and build log) as artifacts.
+
+Because there are no remote SwiftPM dependencies, the build needs **no GitHub
+token** and runs entirely offline.
 
 Each build uses `scripts/ci-build.sh`. Before building, `scripts/bump-version.sh`
 stamps both `Info.plist` files with a monotonic build number (the GitHub run
-number) so every TestFlight upload has a unique `CFBundleVersion`, and captures
-a short changelog from recent commits as release notes.
+number) so every TestFlight upload has a unique `CFBundleVersion`.
 
-### Enabling signed / TestFlight-ready archives
+### Enabling signed / TestFlight-ready archives (optional)
 
 Add the following **repository secrets** (Settings → Secrets and variables →
 Actions). With them the workflow produces signed archives; without them it
@@ -120,35 +94,25 @@ while you wire up credentials.
 | `MAC_PROVISIONING_PROFILE_BASE64` | Base64 of the **Mac App Store** provisioning profile |
 | `KEYCHAIN_PASSWORD` | *(optional)* password for the CI keychain |
 
-### Enabling automatic TestFlight uploads
+### Enabling automatic TestFlight uploads (optional)
 
 Once the app has an **internal testing group** configured in App Store Connect,
 add these App Store Connect **API key** secrets and every signed merge build is
-uploaded to TestFlight automatically (typically visible to internal testers in
-well under 30 minutes). If any of these are missing the upload step is skipped
-with a warning — the build still succeeds and archives are still produced.
+uploaded to TestFlight automatically. If any are missing the upload step is
+skipped with a warning — the build still succeeds.
 
 | Secret | Value |
 | --- | --- |
-| `APP_STORE_CONNECT_API_KEY_ID` | The key id of your App Store Connect API key (e.g. `A1B2C3D4E5`) |
-| `APP_STORE_CONNECT_API_ISSUER_ID` | The issuer id from App Store Connect → Users and Access → Integrations → API Keys |
+| `APP_STORE_CONNECT_API_KEY_ID` | App Store Connect API key id (e.g. `A1B2C3D4E5`) |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer id from App Store Connect → Users and Access → Integrations → API Keys |
 | `APP_STORE_CONNECT_API_KEY_BASE64` | Base64 of the downloaded `AuthKey_XXXX.p8` private key |
 
-Create the API key under **App Store Connect → Users and Access → Integrations
-→ App Store Connect API** with the **App Manager** role. Base64-encode the `.p8`
-with `base64 -i AuthKey_XXXX.p8 | pbcopy`.
+## Verification checklist
 
-The upload uses `scripts/testflight-upload.sh` (via `xcrun altool`); version
-bumping and release notes are handled by `scripts/bump-version.sh`.
-
-## Verification checklist (acceptance)
-
-- [x] SPM package builds (`swift build`) without errors.
-- [x] CLI tool runs (`swift run mayaeyedenden-cli`) without errors.
-- [x] Unit tests pass (`swift test`).
 - [x] `xcodegen generate` produces `MayAyeEyeDen.xcodeproj`.
-- [x] macOS app target builds in Xcode and launches a window (no runtime errors).
+- [x] macOS app target builds and launches a window (no runtime errors).
 - [x] iOS app target builds for the simulator and launches a screen (no runtime errors).
+- [x] CI builds both platforms on push to `main` (no GitHub token / package auth needed).
 
-> The actual build/launch verification must be performed on a Mac with Xcode;
-> this worker runs on Linux/aarch64 where no Swift toolchain or Xcode exists.
+> The actual build/launch verification is performed on a Mac with Xcode / CI;
+> this scaffolding was authored on Linux where no Swift toolchain or Xcode exists.

@@ -18,7 +18,7 @@ struct AppView: View {
         NavigationStack {
             content
                 .padding()
-                .navigationTitle(MayAyeEyeDenCore.appName)
+                .navigationTitle(AppCore.appName)
         }
         #endif
     }
@@ -29,7 +29,7 @@ struct AppView: View {
                 .imageScale(.large)
                 .foregroundStyle(.tint)
 
-            Text("\(MayAyeEyeDenCore.appName) v\(MayAyeEyeDenCore.version)")
+            Text("\(AppCore.appName) v\(AppCore.version)")
                 .font(.headline)
 
             TextField("Name", text: $name)
