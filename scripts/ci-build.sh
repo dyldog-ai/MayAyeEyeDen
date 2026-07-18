@@ -2,9 +2,10 @@
 # ci-build.sh — build + archive a MayAyeEyeDen scheme for CI.
 #
 # Used by .github/workflows/ci-build.yml on a macOS GitHub runner. It generates
-# the Xcode project from project.yml (XcodeGen), archives the requested scheme,
-# and (when signing is enabled) exports a TestFlight-ready .ipa (iOS) / .pkg
-# (macOS) using the matching export-options plist.
+# the Xcode workspace from the Tuist manifests (tuist generate), archives the
+# requested scheme from the generated MayAyeEyeDen.xcworkspace, and (when
+# signing is enabled) exports a TestFlight-ready .ipa (iOS) / .pkg (macOS)
+# using the matching export-options plist.
 #
 # Usage:
 #   ci-build.sh --scheme SCHEME --destination DEST --config CONFIG \
@@ -48,11 +49,12 @@ cd "$ROOT"
 mkdir -p build/logs
 LOG="$ROOT/build/logs/$SCHEME.log"
 
-echo "==> XcodeGen: generate MayAyeEyeDen.xcodeproj"
-xcodegen generate 2>&1 | tee -a "$LOG"
+echo "==> Tuist: generate MayAyeEyeDen.xcworkspace"
+tuist generate 2>&1 | tee -a "$LOG"
 
 ARCHIVE_PATH="build/$SCHEME.xcarchive"
 EXPORT_PATH="build/export/$PLATFORM"
+WORKSPACE="MayAyeEyeDen.xcworkspace"
 
 if [[ "$SIGNING" == "yes" ]]; then
   if [[ -z "$TEAM" ]]; then
@@ -70,7 +72,7 @@ if [[ "$SIGNING" == "yes" ]]; then
   # secrets are present.
   echo "==> xcodebuild: archive scheme $SCHEME ($CONFIG, $DESTINATION)"
   xcodebuild archive \
-    -project MayAyeEyeDen.xcodeproj \
+    -workspace "$WORKSPACE" \
     -scheme "$SCHEME" \
     -configuration "$CONFIG" \
     -destination "$DESTINATION" \
@@ -86,7 +88,7 @@ else
   BUILD_DIR="$ROOT/build"
   echo "==> xcodebuild: build scheme $SCHEME ($CONFIG, $DESTINATION)"
   xcodebuild build \
-    -project MayAyeEyeDen.xcodeproj \
+    -workspace "$WORKSPACE" \
     -scheme "$SCHEME" \
     -configuration "$CONFIG" \
     -destination "$DESTINATION" \

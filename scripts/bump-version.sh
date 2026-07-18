@@ -46,10 +46,10 @@ for PLIST in "${PLISTS[@]}"; do
   echo "==> $PLIST: version $SHORT ($BUILD_NUMBER)"
 done
 
-# Regenerate the Xcode project so the bumped Info.plist values are picked up.
-if command -v xcodegen >/dev/null 2>&1; then
-  echo "==> Regenerating Xcode project after version bump"
-  xcodegen generate >/dev/null
+# Regenerate the Xcode workspace so the bumped Info.plist values are picked up.
+if command -v tuist >/dev/null 2>&1; then
+  echo "==> Regenerating Xcode workspace after version bump"
+  tuist generate >/dev/null
 fi
 
 if [[ -n "$NOTES_OUT" ]]; then

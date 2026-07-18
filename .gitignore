@@ -13,6 +13,11 @@ project.xcworkspace/
 *.ipa
 *.xcarchive
 
+# Tuist generated artifacts
+# `tuist generate` produces MayAyeEyeDen.xcworkspace — do NOT commit it.
+Tuist/Manifest.lock
+*.xcworkspace/xcshareddata/
+
 # Swift Package Manager
 .build/
 .swiftpm/
@@ -25,4 +30,5 @@ xcuserdata/
 .DS_Store
 
 # Build artifacts / logs
+build/
 *.log

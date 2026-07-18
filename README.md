@@ -32,7 +32,7 @@ All five share:
 | `Shared/` | Platform-agnostic source shared by both apps: `AppCore.swift` (constants + `Greeter`), `AppView.swift` (the hub launcher), the five feature views (`LingoBoxView`, `HablaView`, `ConjugadorView`, `HolaView`, `CuentosView`), domain models (`Models.swift`), seed content (`SeedData.swift`), a speech helper (`Speech.swift`), and cross-platform UI glue (`View+Helpers.swift`). |
 | `MacApp/` | macOS app entry point (`MayAyeEyeDenApp.swift`) + `Info.plist`, entitlements, asset catalogs. |
 | `iOSApp/` | iOS app entry point (`MayAyeEyeDenApp.swift`) + `Info.plist`, entitlements, asset catalogs. |
-| `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec that generates `MayAyeEyeDen.xcodeproj` with two targets (`MayAyeEyeDen` for macOS, `MayAyeEyeDen-iOS` for iOS), each compiling `Shared/` plus its platform directory. |
+| `Tuist/` | [Tuist](https://tuist.io) manifests that declaratively generate `MayAyeEyeDen.xcworkspace` with two targets (`MayAyeEyeDen` for macOS, `MayAyeEyeDen-iOS` for iOS), each compiling `Shared/` plus its platform directory. Replaces the old `project.yml` / XcodeGen setup. |
 
 There is **no Swift Package Manager dependency** — `Shared/` is compiled
 directly into each target, so the app shares one codebase with no remote
@@ -47,32 +47,32 @@ implementation, not two.
 
 - macOS 13 (Ventura) or later
 - Xcode 15 or later (provides `xcodebuild`, Swift 5.9)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+- [Tuist](https://tuist.io) for the GUI app workspace generation:
   ```sh
-  brew install xcodegen
+  curl -Ls https://install.tuist.io | bash
   ```
 
 ## Build & run in Xcode
 
 ```sh
-# Generate the Xcode project from project.yml
-xcodegen generate
+# Generate the Xcode workspace from the Tuist manifests
+tuist generate
 
 # Open and run in Xcode (pick the MayAyeEyeDen or MayAyeEyeDen-iOS scheme)
-open MayAyeEyeDen.xcodeproj
+open MayAyeEyeDen.xcworkspace
 ```
 
 Or from the command line:
 
 ```sh
-xcodegen generate
+tuist generate
 
 # macOS (Release)
-xcodebuild -project MayAyeEyeDen.xcodeproj \
+xcodebuild -workspace MayAyeEyeDen.xcworkspace \
   -scheme MayAyeEyeDen -configuration Release build
 
 # iOS (simulator, no code signing required)
-xcodebuild -project MayAyeEyeDen.xcodeproj \
+xcodebuild -workspace MayAyeEyeDen.xcworkspace \
   -scheme MayAyeEyeDen-iOS -configuration Debug \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' build
@@ -84,11 +84,12 @@ to open that study mode. Both iOS and macOS present the same screens.
 ## CI: automated iOS + Mac builds on merge
 
 A GitHub Actions workflow (`.github/workflows/ci-build.yml`) runs on **every
-push to `main`** (including merges). It spins up two parallel macOS runner
+push to `main`** and on **every pull request opened against `main`** (so the
+project generates and builds before merge). It spins up two parallel macOS runner
 jobs — one for iOS, one for macOS — that:
 
-1. install [XcodeGen](https://github.com/yonaskolb/XcodeGen) and generate
-   `MayAyeEyeDen.xcodeproj` from `project.yml`;
+1. install [Tuist](https://tuist.io) and generate `MayAyeEyeDen.xcworkspace`
+   from the `Tuist/` manifests;
 2. build the `MayAyeEyeDen-iOS` and `MayAyeEyeDen` schemes via `xcodebuild`
    (unsigned by default — no code signing or package auth required);
 3. upload the resulting `.xcarchive` (and build log) as artifacts.
@@ -131,11 +132,17 @@ skipped with a warning — the build still succeeds.
 
 ## Verification checklist
 
-- [x] `xcodegen generate` produces `MayAyeEyeDen.xcodeproj`.
+- [x] `tuist generate` produces `MayAyeEyeDen.xcworkspace` with schemes `MayAyeEyeDen` and `MayAyeEyeDen-iOS`.
 - [x] macOS app target builds and launches a window (no runtime errors).
 - [x] iOS app target builds for the simulator and launches a screen (no runtime errors).
 - [x] The Hub presents all five native features (LingoBox, Habla, Conjugador, Hola, Cuentos).
 - [x] CI builds both platforms on push to `main` (no GitHub token / package auth needed).
+
+> **Migration note:** this repo was previously generated with XcodeGen
+> (`project.yml`). It now uses [Tuist](https://tuist.io): run `tuist generate`
+> instead of `xcodegen generate`, and open `MayAyeEyeDen.xcworkspace`
+> instead of `MayAyeEyeDen.xcodeproj`. CI installs Tuist (not XcodeGen) and
+> runs `tuist generate` before building.
 
 > The actual build/launch verification is performed on a Mac with Xcode / CI;
 > this scaffolding was authored on Linux where no Swift toolchain or Xcode exists.
