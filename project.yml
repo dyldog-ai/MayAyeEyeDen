@@ -7,25 +7,22 @@ options:
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
-# The local Package.swift is treated as a Swift package dependency so the
-# shared `MayAyeEyeDenCore` library (and its transitive deps) is available
-# to the macOS GUI app target.
-packages:
-  MayAyeEyeDenPackage:
-    path: "."
+# Both the macOS and iOS apps share a single codebase (Sources/Shared), so there
+# is no Swift package dependency to resolve — the previously-failing
+# apple/apple-argument-parser dependency is gone entirely, and CI no longer needs
+# any GitHub auth to clone packages.
 
 targets:
   MayAyeEyeDen:
     type: application
     platform: macOS
     sources:
+      - path: Shared
       - path: MacApp
         excludes:
           - "Info.plist"
           - "MayAyeEyeDen.entitlements"
-    dependencies:
-      - package: MayAyeEyeDenPackage
-        product: MayAyeEyeDenCore
+    dependencies: []
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dyldog.MayAyeEyeDen
@@ -44,13 +41,12 @@ targets:
     type: application
     platform: iOS
     sources:
+      - path: Shared
       - path: iOSApp
         excludes:
           - "Info.plist"
           - "MayAyeEyeDen.entitlements"
-    dependencies:
-      - package: MayAyeEyeDenPackage
-        product: MayAyeEyeDenCore
+    dependencies: []
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dyldog.MayAyeEyeDen

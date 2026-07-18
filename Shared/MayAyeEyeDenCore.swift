@@ -1,9 +1,6 @@
 import Foundation
 
-/// Shared core module for MayAyeEyeDen.
-///
-/// This library holds the platform-agnostic logic used by both the
-/// command-line tool (`mayaeyedenden-cli`) and the macOS GUI application.
+/// Shared core for MayAyeEyeDen (single codebase shared by the macOS and iOS apps).
 public enum MayAyeEyeDenCore {
     /// Display name of the product.
     public static let appName = "MayAyeEyeDen"

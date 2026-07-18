@@ -40,26 +40,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # SwiftPM clones remote package dependencies (e.g. apple/apple-argument-parser)
-      # into a separate DerivedData location, OUTSIDE the checked-out repo, so it
-      # does not inherit actions/checkout's repo-scoped GITHUB_TOKEN. Worse, that
-      # token has no access to third-party orgs, so a clone fails with
-      # "repository not found". And unauthenticated clones are rejected by the
-      # GitHub-hosted macos runner ("could not read Username: Device not configured").
-      # The reliable fix is a classic PAT with the 'public_repo' scope, which can
-      # read ANY public repository. Store it as the GH_PAT repository secret and
-      # apply it as a global git URL rewrite so SwiftPM authenticates the clone.
-      # (For a PRIVATE package dependency, use a PAT with the matching repo scope —
-      # same mechanism.)
-      - name: Allow SwiftPM to fetch dependencies
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          if [ -z "$GH_PAT" ]; then
-            echo "::error::The 'GH_PAT' secret is missing. SwiftPM cannot fetch third-party packages with the repo-scoped GITHUB_TOKEN (returns 'repository not found'), and unauthenticated clones are blocked on GitHub-hosted runners. Create a classic Personal Access Token (https://github.com/settings/tokens) with the 'public_repo' scope and add it as a repository secret named GH_PAT."
-            exit 1
-          fi
-          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "https://github.com/"
+      # No SwiftPM package dependencies. The macOS and iOS apps share a single
+      # codebase (Sources/Shared) and previously relied on the now-removed
+      # apple/apple-argument-parser package (that org/repo no longer exists, which
+      # is what broke dependency resolution). With no remote packages to clone,
+      # there is nothing to authenticate and the build works without any GitHub
+      # token.
 
       - name: Show Xcode version
         run: xcodebuild -version
