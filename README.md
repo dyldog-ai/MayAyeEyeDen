@@ -1,25 +1,47 @@
 # MayAyeEyeDen
 
-A single shared SwiftUI codebase that builds **both** a macOS and an iOS app
-(repo: `dyldog-ai/MayAyeEyeDen`).
+A native **Spanish-learning toolkit** for iPhone, iPad, and Mac — five bite-size
+study modes in a single SwiftUI app, sharing one platform-agnostic codebase.
 
-> **Note on origin:** The upstream GitHub repository was cloned empty (no
-> commits). This scaffolding bootstraps a real, buildable app from scratch so
-> it can be built and launched in Xcode and on CI.
+> Origin: the upstream repo (`dyldog-ai/MayAyeEyeDen`) started as empty
+> scaffolding. The five ideas were originally prototyped as web apps elsewhere;
+> this project is the **native iOS/macOS conversion** — the web prototypes were
+> retired and replaced by the Swift implementations below.
 
-## What's here
+## The five ideas (all native)
+
+| Feature | Spanish name | What it does |
+| --- | --- | --- |
+| Flashcards | **LingoBox** | Spaced-repetition style cards: tap to flip ES ↔ EN, hear the word, swipe through the deck. |
+| Conversation | **Habla** | Offline, rule-based chat coach. Pick a scenario (café, train, hotel), reply in Spanish, get instant feedback. No network needed. |
+| Verb drill | **Conjugador** | 21 high-frequency verbs × 4 tenses × 6 persons. Type the form, get immediate right/wrong feedback and hear it spoken. |
+| Mini-lessons | **Hola** | Duolingo-style exercises: multiple choice, tap-to-build, match pairs, listen-and-choose. Score at the end. |
+| Story reader | **Cuentos** | Graded A1/A2 stories. Tap a sentence to reveal its English translation and hear it read aloud. |
+
+All five share:
+
+- a single `Shared/` codebase (models + views + seed content) compiled directly
+  into both apps — no separate framework or SwiftPM package,
+- native Spanish text-to-speech via `AVSpeechSynthesizer` (no API key),
+- the same UI on iOS and macOS through SwiftUI.
+
+## Architecture
 
 | Path | Purpose |
 | --- | --- |
-| `Shared/` | Platform-agnostic source shared by both apps — `AppCore.swift` (constants + `Greeter` logic) and `AppView.swift` (the SwiftUI UI, platform-adaptive via `#if os(macOS)`). |
-| `MacApp/` | macOS app entry point + `Info.plist`, entitlements, asset catalogs. |
-| `iOSApp/` | iOS app entry point + `Info.plist`, entitlements, asset catalogs. |
+| `Shared/` | Platform-agnostic source shared by both apps: `AppCore.swift` (constants + `Greeter`), `AppView.swift` (the hub launcher), the five feature views (`LingoBoxView`, `HablaView`, `ConjugadorView`, `HolaView`, `CuentosView`), domain models (`Models.swift`), seed content (`SeedData.swift`), a speech helper (`Speech.swift`), and cross-platform UI glue (`View+Helpers.swift`). |
+| `MacApp/` | macOS app entry point (`MayAyeEyeDenApp.swift`) + `Info.plist`, entitlements, asset catalogs. |
+| `iOSApp/` | iOS app entry point (`MayAyeEyeDenApp.swift`) + `Info.plist`, entitlements, asset catalogs. |
 | `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec that generates `MayAyeEyeDen.xcodeproj` with two targets (`MayAyeEyeDen` for macOS, `MayAyeEyeDen-iOS` for iOS), each compiling `Shared/` plus its platform directory. |
 
-There is **no Swift Package Manager dependency** — the previously-used
-`apple/apple-argument-parser` package no longer exists, so the app shares one
-codebase directly with no remote packages to fetch. That keeps CI fully
-offline (no GitHub token required for dependency resolution).
+There is **no Swift Package Manager dependency** — `Shared/` is compiled
+directly into each target, so the app shares one codebase with no remote
+packages to fetch. That keeps CI fully offline (no GitHub token required for
+dependency resolution).
+
+The iOS and Mac apps are thin shells: each `MayAyeEyeDenApp` hosts `AppView()`,
+which presents the `HubView` launcher and every feature screen — one
+implementation, not two.
 
 ## Prerequisites (macOS)
 
@@ -56,8 +78,8 @@ xcodebuild -project MayAyeEyeDen.xcodeproj \
   -destination 'generic/platform=iOS Simulator' build
 ```
 
-Both apps launch into a minimal SwiftUI screen that greets the entered name,
-proving the shared `AppCore` / `AppView` code is compiled into each target.
+Both apps launch into the **Hub** — a grid of the five features. Tap any tile
+to open that study mode. Both iOS and macOS present the same screens.
 
 ## CI: automated iOS + Mac builds on merge
 
@@ -112,6 +134,7 @@ skipped with a warning — the build still succeeds.
 - [x] `xcodegen generate` produces `MayAyeEyeDen.xcodeproj`.
 - [x] macOS app target builds and launches a window (no runtime errors).
 - [x] iOS app target builds for the simulator and launches a screen (no runtime errors).
+- [x] The Hub presents all five native features (LingoBox, Habla, Conjugador, Hola, Cuentos).
 - [x] CI builds both platforms on push to `main` (no GitHub token / package auth needed).
 
 > The actual build/launch verification is performed on a Mac with Xcode / CI;

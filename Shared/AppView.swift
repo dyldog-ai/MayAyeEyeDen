@@ -2,44 +2,17 @@ import SwiftUI
 
 /// Shared UI for MayAyeEyeDen, used by both the macOS and iOS app targets.
 ///
-/// The view adapts its chrome to the platform: iOS gets a navigation title,
-/// while macOS keeps a compact, window-sized layout.
+/// Presents the native feature hub (`HubView`) which routes to the five
+/// Spanish-learning modes. `HubView` owns its own `NavigationStack`, so the
+/// platform shells only need to size the window.
 struct AppView: View {
-    @State private var name: String = "world"
-
-    private let greeter = Greeter()
-
     var body: some View {
         #if os(macOS)
-        content
-            .padding()
-            .frame(minWidth: 320, minHeight: 240)
+        HubView()
+            .frame(minWidth: 520, minHeight: 600)
         #else
-        NavigationStack {
-            content
-                .padding()
-                .navigationTitle(AppCore.appName)
-        }
+        HubView()
         #endif
-    }
-
-    private var content: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "eye.fill")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-
-            Text("\(AppCore.appName) v\(AppCore.version)")
-                .font(.headline)
-
-            TextField("Name", text: $name)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 240)
-
-            Text(greeter.greet(name: name))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
     }
 }
 
