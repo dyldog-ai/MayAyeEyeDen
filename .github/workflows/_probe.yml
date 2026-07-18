@@ -1,0 +1,39 @@
+name: Probe dep-fetch methods
+
+# Runs only when pushed to the probe-fix branch.
+on:
+  push:
+    branches: [probe-fix]
+
+jobs:
+  anon-https:
+    name: anon-https-clone
+    runs-on: macos-latest
+    steps:
+      - name: Clone public repo via anonymous HTTPS (hard)
+        run: |
+          rm -rf /tmp/aap
+          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap
+          echo "ANON_HTTPS_OK"
+
+  token-https:
+    name: token-https-clone
+    runs-on: macos-latest
+    steps:
+      - name: Clone public repo via GITHUB_TOKEN HTTPS (hard)
+        run: |
+          rm -rf /tmp/aap
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap
+          echo "TOKEN_HTTPS_OK"
+
+  ssh-redirect:
+    name: ssh-redirect-clone
+    runs-on: macos-latest
+    steps:
+      - name: Clone public repo via SSH url redirect (hard)
+        run: |
+          rm -rf /tmp/aap
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap
+          echo "SSH_REDIRECT_OK"
