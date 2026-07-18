@@ -5,31 +5,32 @@ on:
     branches: [probe-fix]
 
 jobs:
-  anon-strip-creds:
-    name: anon-strip-creds
+  checkout-no-persist:
+    name: checkout-no-persist
     runs-on: macos-latest
     steps:
-      - name: Strip injected credential config, then anonymous HTTPS clone
+      - name: Checkout with persist-credentials false
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Clone public package (stands in for SwiftPM)
         run: |
           rm -rf /tmp/aap
-          unset GITHUB_TOKEN
-          git config --global --unset credential.helper || true
-          git config --global --unset http.extraheader || true
-          GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= \
-            clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap 2>&1 | tail -3 \
-            && echo "STRIP_OK" || echo "STRIP_FAIL"
+          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap 2>&1 | tail -3 \
+            && echo "NO_PERSIST_OK" || echo "NO_PERSIST_FAIL"
           rm -rf /tmp/aap
 
-  anon-sterile-home:
-    name: anon-sterile-home
+  strip-and-clone:
+    name: strip-and-clone
     runs-on: macos-latest
     steps:
-      - name: Truly anonymous clone in sterile HOME
+      - name: Checkout (default) then strip injected cred, clone
+        uses: actions/checkout@v4
+      - name: Strip injected credential and clone
         run: |
-          rm -rf /tmp/aap /tmp/emptyhome
-          mkdir -p /tmp/emptyhome
-          HOME=/tmp/emptyhome GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
-            git -c credential.helper= -c http.extraheader= \
-            clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap 2>&1 | tail -3 \
-            && echo "STERILE_OK" || echo "STERILE_FAIL"
-          rm -rf /tmp/aap /tmp/emptyhome
+          rm -rf /tmp/aap
+          git config --global --unset-all http.https://github.com/.extraheader || true
+          git config --global --unset-all credential.helper || true
+          git clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aap 2>&1 | tail -3 \
+            && echo "STRIP_OK" || echo "STRIP_FAIL"
+          rm -rf /tmp/aap
