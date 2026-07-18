@@ -40,6 +40,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # SwiftPM clones remote package dependencies (e.g. apple/apple-argument-parser)
+      # into DerivedData, which does NOT inherit the credential actions/checkout writes
+      # into the checked-out repo's local .git/config. Without this, the public-package
+      # clone fails with "could not read Username for 'https://github.com'". Rewrite the
+      # https URL to embed the job token so SwiftPM can fetch dependencies.
+      - name: Allow SwiftPM to fetch dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
       - name: Show Xcode version
         run: xcodebuild -version
 
