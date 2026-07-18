@@ -37,31 +37,17 @@ jobs:
             profile_secret: MAC_PROVISIONING_PROFILE_BASE64
 
     steps:
+      # persist-credentials: false means actions/checkout does NOT write the
+      # repo-scoped GITHUB_TOKEN into the local git config. SwiftPM clones remote
+      # dependencies (e.g. apple/apple-argument-parser, a public repo) into a
+      # separate DerivedData location that would not inherit that credential — and
+      # the repo-scoped token can't read third-party orgs anyway (404). With no
+      # injected token, git falls back to an ANONYMOUS public clone, which works on
+      # the GitHub-hosted macos runner. No PAT / GH_PAT secret is required.
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Don't persist the repo-scoped GITHUB_TOKEN as a git credential.
-          # The injected auth makes github.com reject clones of *third-party
-          # public* package dependencies ("repository not found"), which breaks
-          # SwiftPM resolution. With it cleared, public deps clone anonymously.
           persist-credentials: false
-      # SwiftPM resolves package dependencies (e.g. apple/apple-argument-parser)
-      # from outside the checked-out repo. A repo-scoped GITHUB_TOKEN injected as
-      # a github.com credential causes third-party *public* package clones to fail
-      # with "repository not found" (the token has no access to other orgs). The
-      # checkout above already uses persist-credentials: false; this step is a
-      # belt-and-suspenders guard that clears any lingering github.com auth so the
-      # public dependency clones anonymously. Verified working via a CI probe
-      # (run 29649791483: "NO_PERSIST_OK" / "STRIP_OK").
-      # If you later need a PRIVATE package dependency, comment this out and
-      # instead set a GH_PAT secret (classic PAT with read:packages / repo scope)
-      # with an `insteadOf` rewrite — but that is NOT required for this repo.
-      - name: Allow SwiftPM to fetch dependencies (anonymous)
-        run: |
-          git config --global --unset-all http.https://github.com/.extraheader || true
-          git config --global --unset-all credential.helper || true
-          git config --global --unset url."https://x-access-token:${GH_PAT:-x}@github.com/".insteadOf || true
-          echo "Cleared GitHub credentials — public SwiftPM deps will clone anonymously."
 
       - name: Show Xcode version
         run: xcodebuild -version
