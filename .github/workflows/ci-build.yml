@@ -41,15 +41,21 @@ jobs:
         uses: actions/checkout@v4
 
       # SwiftPM clones remote package dependencies (e.g. apple/apple-argument-parser)
-      # into DerivedData, which does NOT inherit the credential actions/checkout writes
-      # into the checked-out repo's local .git/config. Without this, the public-package
-      # clone fails with "could not read Username for 'https://github.com'". Rewrite the
-      # https URL to embed the job token so SwiftPM can fetch dependencies.
+      # into DerivedData. The job GITHUB_TOKEN is *repo-scoped* and cannot read
+      # third-party repositories, so the clone fails with "Repository not found" /
+      # "could not read Username" — and this GitHub-hosted runner requires auth for
+      # ALL github.com git operations (public repos cannot be cloned anonymously).
+      # A classic PAT with at least the 'public_repo' scope is therefore required to
+      # fetch dependencies. Store it as the GH_PAT repository secret.
       - name: Allow SwiftPM to fetch dependencies
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          if [ -z "$GH_PAT" ]; then
+            echo "::error::The 'GH_PAT' secret is missing. SwiftPM cannot fetch third-party packages with the repo-scoped GITHUB_TOKEN. Create a Personal Access Token (https://github.com/settings/tokens) with the 'public_repo' scope and add it as a repository secret named GH_PAT."
+            exit 1
+          fi
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "https://github.com/"
 
       - name: Show Xcode version
         run: xcodebuild -version
