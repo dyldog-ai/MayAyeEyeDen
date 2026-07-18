@@ -97,6 +97,14 @@ jobs:
             --signing "${{ steps.signing.outputs.signing }}" \
             --team "$TEAM_ID"
 
+      - name: Upload build log (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build-log
+          path: build/logs/${{ matrix.scheme }}.log
+          if-no-files-found: warn
+
       - name: Upload .xcarchive artifact
         if: always()
         uses: actions/upload-artifact@v4

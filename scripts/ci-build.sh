@@ -45,14 +45,14 @@ esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+mkdir -p build/logs
+LOG="$ROOT/build/logs/$SCHEME.log"
 
 echo "==> XcodeGen: generate MayAyeEyeDen.xcodeproj"
-xcodegen generate
+xcodegen generate 2>&1 | tee -a "$LOG"
 
 ARCHIVE_PATH="build/$SCHEME.xcarchive"
 EXPORT_PATH="build/export/$PLATFORM"
-
-echo "==> xcodebuild: archive scheme $SCHEME ($CONFIG, $DESTINATION)"
 
 if [[ "$SIGNING" == "yes" ]]; then
   if [[ -z "$TEAM" ]]; then
@@ -75,7 +75,7 @@ if [[ "$SIGNING" == "yes" ]]; then
     -configuration "$CONFIG" \
     -destination "$DESTINATION" \
     -archivePath "$ARCHIVE_PATH" \
-    "${SIGN_FLAGS[@]}"
+    "${SIGN_FLAGS[@]}" 2>&1 | tee -a "$LOG"
   echo "==> Archive produced: $ARCHIVE_PATH"
 else
   echo "::warning::Building UNSIGNED — using 'xcodebuild build' (archiving needs a signed product). Not TestFlight-ready."
@@ -92,7 +92,7 @@ else
     -destination "$DESTINATION" \
     -derivedDataPath "$BUILD_DIR/DerivedData" \
     "CONFIGURATION_BUILD_DIR=$BUILD_DIR/$PLATFORM" \
-    "${SIGN_FLAGS[@]}"
+    "${SIGN_FLAGS[@]}" 2>&1 | tee -a "$LOG"
   # Synthesize an .xcarchive-shaped bundle so the upload artifact step resolves.
   echo "==> Producing unsigned .xcarchive bundle for artifact upload"
   mkdir -p "$ARCHIVE_PATH/Products/Applications"
