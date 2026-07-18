@@ -1,9 +1,12 @@
 name: CI Build (iOS + Mac)
 
-# Triggers whenever changes land on `main` — including merges (squash/merge
-# commits both create a new commit on main). A manual run is also available.
+# Triggers whenever changes land on `main` (including merges), on any
+# `pull_request` opened against `main` (so generation/build is validated
+# before merge), and a manual dispatch.
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -41,8 +44,8 @@ jobs:
         uses: actions/checkout@v4
 
       # No SwiftPM package dependencies. The macOS and iOS apps share a single
-      # codebase (Sources/Shared) and previously relied on the now-removed
-      # apple/apple-argument-parser package (that org/repo no longer exists, which
+      # codebase (Shared) and previously relied on the now-removed
+
       # is what broke dependency resolution). With no remote packages to clone,
       # there is nothing to authenticate and the build works without any GitHub
       # token.

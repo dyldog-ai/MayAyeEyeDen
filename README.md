@@ -3,8 +3,8 @@
 A single shared SwiftUI codebase that builds **both** a macOS and an iOS app
 (repo: `dyldog-ai/MayAyeEyeDen`).
 
-> **Note on origin:** The upstream GitHub repository was cloned empty (no
-> commits). This scaffolding bootstraps a real, buildable app from scratch so
+> **Note on origin:** The upstream GitHub repository was bootstrapped from
+> scratch (it began empty). This scaffolding provides a real, buildable app so
 > it can be built and launched in Xcode and on CI.
 
 ## What's here
@@ -62,7 +62,8 @@ proving the shared `AppCore` / `AppView` code is compiled into each target.
 ## CI: automated iOS + Mac builds on merge
 
 A GitHub Actions workflow (`.github/workflows/ci-build.yml`) runs on **every
-push to `main`** (including merges). It spins up two parallel macOS runner
+push to `main`** and on **every pull request opened against `main`** (so the
+project generates and builds before merge). It spins up two parallel macOS runner
 jobs — one for iOS, one for macOS — that:
 
 1. install [XcodeGen](https://github.com/yonaskolb/XcodeGen) and generate
