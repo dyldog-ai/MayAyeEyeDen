@@ -66,23 +66,41 @@ if [[ "$SIGNING" == "yes" ]]; then
     CODE_SIGNING_REQUIRED=YES
     -allowProvisioningUpdates
   )
+  # Archiving requires a signed product, which is only possible when signing
+  # secrets are present.
+  echo "==> xcodebuild: archive scheme $SCHEME ($CONFIG, $DESTINATION)"
+  xcodebuild archive \
+    -project MayAyeEyeDen.xcodeproj \
+    -scheme "$SCHEME" \
+    -configuration "$CONFIG" \
+    -destination "$DESTINATION" \
+    -archivePath "$ARCHIVE_PATH" \
+    "${SIGN_FLAGS[@]}"
+  echo "==> Archive produced: $ARCHIVE_PATH"
 else
-  echo "::warning::Building UNSIGNED archive (CODE_SIGNING_ALLOWED=NO). Not TestFlight-ready."
+  echo "::warning::Building UNSIGNED — using 'xcodebuild build' (archiving needs a signed product). Not TestFlight-ready."
   SIGN_FLAGS=(
     CODE_SIGNING_ALLOWED=NO
     CODE_SIGNING_REQUIRED=NO
   )
+  BUILD_DIR="$ROOT/build"
+  echo "==> xcodebuild: build scheme $SCHEME ($CONFIG, $DESTINATION)"
+  xcodebuild build \
+    -project MayAyeEyeDen.xcodeproj \
+    -scheme "$SCHEME" \
+    -configuration "$CONFIG" \
+    -destination "$DESTINATION" \
+    -derivedDataPath "$BUILD_DIR/DerivedData" \
+    "CONFIGURATION_BUILD_DIR=$BUILD_DIR/$PLATFORM" \
+    "${SIGN_FLAGS[@]}"
+  # Synthesize an .xcarchive-shaped bundle so the upload artifact step resolves.
+  echo "==> Producing unsigned .xcarchive bundle for artifact upload"
+  mkdir -p "$ARCHIVE_PATH/Products/Applications"
+  cp -R "$BUILD_DIR/$PLATFORM/"*.app "$ARCHIVE_PATH/Products/Applications/" 2>/dev/null || \
+    cp -R "$BUILD_DIR/$PLATFORM/"*.app "$ARCHIVE_PATH/Products/Applications/"
+  echo "==> Unsigned product produced at: $ARCHIVE_PATH/Products/Applications"
+  ls -la "$ARCHIVE_PATH/Products/Applications"
 fi
-
-xcodebuild archive \
-  -project MayAyeEyeDen.xcodeproj \
-  -scheme "$SCHEME" \
-  -configuration "$CONFIG" \
-  -destination "$DESTINATION" \
-  -archivePath "$ARCHIVE_PATH" \
-  "${SIGN_FLAGS[@]}"
-
-echo "==> Archive produced: $ARCHIVE_PATH"
 
 if [[ "$SIGNING" == "yes" ]]; then
   EXPORT_PLIST="scripts/export-options-$PLATFORM.plist"
