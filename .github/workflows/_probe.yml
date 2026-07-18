@@ -1,0 +1,19 @@
+name: Probe public clone
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: macos-latest
+    steps:
+      - name: Anonymous git ls-remote of a public repo
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          echo "== unset any inherited extraheader/credential =="
+          git config --global --unset-all http.https://github.com/.extraheader || true
+          git config --global --unset-all credential.helper || true
+          rm -f ~/.gitcredentials || true
+          echo "== try ANONYMOUS ls-remote =="
+          git ls-remote https://github.com/apple/apple-argument-parser.git HEAD && echo "ANON_OK" || echo "ANON_FAIL"
+          echo "== try token ls-remote with GITHUB_TOKEN =="
+          git ls-remote "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/apple/apple-argument-parser.git" HEAD && echo "TOKEN_OK" || echo "TOKEN_FAIL"
