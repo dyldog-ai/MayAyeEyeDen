@@ -5,15 +5,39 @@ jobs:
   probe:
     runs-on: macos-latest
     steps:
-      - name: Anonymous git ls-remote of a public repo
-        env:
-          GIT_TERMINAL_PROMPT: "0"
+      - uses: actions/checkout@v4
+
+      - name: Test cloning apple/apple-argument-parser under default runner config
+        continue-on-error: true
         run: |
-          echo "== unset any inherited extraheader/credential =="
-          git config --global --unset-all http.https://github.com/.extraheader || true
+          echo "==== A) DEFAULT (checkout already applied its credential) ===="
+          rm -rf /tmp/aapA
+          GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aapA 2>&1 | tail -3 && echo "A_OK" || echo "A_FAIL"
+          rm -rf /tmp/aapA
+
+      - name: Test cloning after stripping repo-scoped extraheader (anonymous)
+        continue-on-error: true
+        run: |
+          echo "==== B) STRIP extraheader, anonymous attempt ===="
+          git config --global --unset-all 'http.https://github.com/.extraheader' || true
+          git config --local  --unset-all 'http.https://github.com/.extraheader' || true
           git config --global --unset-all credential.helper || true
+          git config --system --unset-all credential.helper || true
           rm -f ~/.gitcredentials || true
-          echo "== try ANONYMOUS ls-remote =="
-          git ls-remote https://github.com/apple/apple-argument-parser.git HEAD && echo "ANON_OK" || echo "ANON_FAIL"
-          echo "== try token ls-remote with GITHUB_TOKEN =="
-          git ls-remote "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/apple/apple-argument-parser.git" HEAD && echo "TOKEN_OK" || echo "TOKEN_FAIL"
+          rm -rf /tmp/aapB
+          GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --depth 1 https://github.com/apple/apple-argument-parser.git /tmp/aapB 2>&1 | tail -3 && echo "B_OK" || echo "B_FAIL"
+          rm -rf /tmp/aapB
+
+      - name: Test cloning with a classic-style token that can read public repos (simulate GH_PAT)
+        continue-on-error: true
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          echo "==== C) IF GH_PAT secret exists, use it for insteadOf ===="
+          if [ -z "$GH_PAT" ]; then
+            echo "GH_PAT secret NOT set -> cannot test. (C_SKIP)"
+            exit 0
+          fi
+          rm -rf /tmp/aapC
+          GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --depth 1 "https://x-access-token:${GH_PAT}@github.com/apple/apple-argument-parser.git" /tmp/aapC 2>&1 | tail -3 && echo "C_OK" || echo "C_FAIL"
+          rm -rf /tmp/aapC
