@@ -1,0 +1,40 @@
+name: MayAyeEyeDen
+options:
+  bundleIdPrefix: com.dyldog
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+# The local Package.swift is treated as a Swift package dependency so the
+# shared `MayAyeEyeDenCore` library (and its transitive deps) is available
+# to the macOS GUI app target.
+packages:
+  MayAyeEyeDenPackage:
+    path: "."
+
+targets:
+  MayAyeEyeDen:
+    type: application
+    platform: macOS
+    sources:
+      - path: MacApp
+        excludes:
+          - "Info.plist"
+          - "MayAyeEyeDen.entitlements"
+    dependencies:
+      - package: MayAyeEyeDenPackage
+        product: MayAyeEyeDenCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dyldog.MayAyeEyeDen
+        PRODUCT_NAME: MayAyeEyeDen
+        INFOPLIST_FILE: MacApp/Info.plist
+        CODE_SIGN_ENTITLEMENTS: MacApp/MayAyeEyeDen.entitlements
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        GENERATE_INFOPLIST_FILE: "NO"
+        ENABLE_HARDENED_RUNTIME: "YES"
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME: AccentColor
